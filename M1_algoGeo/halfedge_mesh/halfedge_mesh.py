@@ -300,20 +300,11 @@ class HalfedgeMesh:
 
         self.halfedges = hlist
     
-    def save_vertices(self, filename, vertices_values = []):
-        with_v_colors = len(vertices_values) == len(self.vertices)
-        if with_v_colors:
-            min_v_values = min(vertices_values)
-            max_v_values = max(vertices_values)
-            if min_v_values == max_v_values:
-                max_v_values += 0.001
+    def save_vertices(self, filename, valeurs, segType):
 
         try:
             with open(filename, 'w') as file:
 
-                # write "OFF"
-                if with_v_colors:
-                    file.write("C")
                 file.write("OFF\n")
 
                 # write number of vertices, faces, edges
@@ -321,18 +312,49 @@ class HalfedgeMesh:
 
                 # for each vertex write its coordinates
                 for v in self.vertices:
-                    file.write(str(v.x) + " " + str(v.y) + " " + str(v.z) + "\n")
-                    if with_v_colors:
-                        if vertices_values[v.index] < 0: # composante connexe non atteinte
-                            file.write("255 255 0")
-                        else:
-                            x = int(255 * (vertices_values[v.index] - min_v_values) / (max_v_values - min_v_values))
-                            file.write(" 255 " + str(x) + " " + str(x))
+                    file.write(str(v.x) + " " + str(v.y) + " " + str(v.z))
                     file.write("\n")   
 
                 # for each facet write the corresponding line 
+                # red: x
+                # gre: 0.5
+                # blu: 1-x
+
+                # or
+                # red: x^2
+                # gre: 0.5
+                # blue: (1-x)^2
+
+                cpt = 0
+
+                def truncate(num):
+                  temp = str(num)
+                  temp2 = ""
+                  if len(temp) > 5:
+                    for i in range(5):
+                      temp2 += temp[i]
+                  elif len(temp) < 5:
+                    temp2 = temp
+                    for i in range(5-len(temp)):
+                      temp2 += "0"
+                  else:
+                    temp2 = temp
+                  return temp2
+
                 for f in self.facets:
-                    file.write("3 " + str(f.a) + " " + str(f.b) + " " + str(f.c) + "\n")
+                    if segType == "firstSeg":
+                      file.write("3 " + str(f.a) + " " + str(f.b) + " " + str(f.c) + " ")
+                      file.write(str(float(valeurs[cpt])**2) + " " + "0.500 " + str(truncate((1-float(valeurs[cpt]))**2)) + "\n")
+                      cpt += 1
+                    elif segType == "TwoClassSeg":
+                      file.write("3 " + str(f.a) + " " + str(f.b) + " " + str(f.c) + " ")
+                      file.write(str(valeurs[cpt]) + " " + str(valeurs[cpt]) + " " + str(valeurs[cpt]) + "\n")
+                      cpt += 1
+
+                      
+
+                    
+
 
         except IOError as e:
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
